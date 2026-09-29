@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+    
+    - name: Run ruff linting
+      run: |
+        uv run ruff check src/ tests/
+    
+    - name: Run ruff formatting check
+      run: |
+        uv run ruff format --check src/ tests/
+    
+    - name: Run pytest
+      run: |
+        uv run pytest tests/ -v --cov=src/priceguard --cov-report=xml --cov-report=term-missing
+    
+    - name: Verify CLI help
+      run: |
+        uv run python -m priceguard.cli --help
+    
+    - name: Run offline pipeline
+      run: |
+        uv run python -m priceguard.cli run-all --offline
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      if: always()
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
