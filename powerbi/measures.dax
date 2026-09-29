@@ -1,0 +1,206 @@
+// measures.dax - DAX measures for PriceGuard Power BI report
+// Each measure includes a comment explaining its purpose
+
+// =============================================================================
+// Exception Counts
+// =============================================================================
+
+// Total number of exceptions in the current filter context
+Total Exceptions = COUNTROWS(fact_exceptions)
+
+// Number of exceptions that are still open (status is OPEN or UNDER_REVIEW)
+Open Exceptions = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    dim_status[is_open] = TRUE
+)
+
+// Number of exceptions with CRITICAL severity
+Critical Count = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    dim_severity[severity] = "CRITICAL"
+)
+
+// =============================================================================
+// Rates and Ratios
+// =============================================================================
+
+// Breach rate: exceptions / total position-days
+// Denominator uses fact_marks to count all position-days
+Breach Rate = 
+DIVIDE(
+    COUNTROWS(fact_exceptions),
+    COUNTROWS(fact_marks),
+    0
+)
+
+// Resolution rate: resolved exceptions / total closed exceptions
+Resolution Rate = 
+DIVIDE(
+    CALCULATE(
+        COUNTROWS(fact_exceptions),
+        dim_status[status] IN {"RESOLVED", "ADJUSTED"}
+    ),
+    CALCULATE(
+        COUNTROWS(fact_exceptions),
+        dim_status[is_open] = FALSE
+    ),
+    0
+)
+
+// =============================================================================
+// Impact Metrics
+// =============================================================================
+
+// Total absolute MV impact in USD (sum of absolute values)
+Absolute MV Impact = 
+SUMX(
+    fact_exceptions,
+    ABS(fact_exceptions[mv_impact_usd])
+)
+
+// Total signed MV impact (can be positive or negative)
+Signed MV Impact = 
+SUM(fact_exceptions[mv_impact_usd])
+
+// =============================================================================
+// Ageing Metrics
+// =============================================================================
+
+// Average age in business days for open exceptions
+Average Age (Open) = 
+CALCULATE(
+    AVERAGE(fact_exceptions[age_days]),
+    dim_status[is_open] = TRUE
+)
+
+// Count of open exceptions older than 5 business days
+Items Older Than 5 Days = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    dim_status[is_open] = TRUE,
+    fact_exceptions[age_days] > 5
+)
+
+// =============================================================================
+// Time-Based Comparisons
+// =============================================================================
+
+// Exceptions in the current week
+Exceptions This Week = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    DATESINPERIOD(
+        dim_date[date],
+        MAX(dim_date[date]),
+        -7,
+        DAY
+    )
+)
+
+// Exceptions in the prior week
+Exceptions Prior Week = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    DATESINPERIOD(
+        dim_date[date],
+        MAX(dim_date[date]) - 7,
+        -7,
+        DAY
+    )
+)
+
+// Week-over-week change in exceptions
+Exceptions vs Prior Week = 
+VAR CurrentWeek = [Exceptions This Week]
+VAR PriorWeek = [Exceptions Prior Week]
+RETURN
+    IF(
+        PriorWeek > 0,
+        DIVIDE(CurrentWeek - PriorWeek, PriorWeek, 0),
+        BLANK()
+    )
+
+// =============================================================================
+// Coverage Metrics
+// =============================================================================
+
+// Coverage: positions with reference price / total positions
+// Measures how many position-days have independent reference data
+Coverage = 
+VAR PositionsWithRef = 
+    CALCULATE(
+        DISTINCTCOUNT(fact_marks[position_id]),
+        NOT(ISBLANK(fact_marks[reference_price]))
+    )
+VAR TotalPositions = 
+    DISTINCTCOUNT(fact_marks[position_id])
+RETURN
+    DIVIDE(PositionsWithRef, TotalPositions, 0)
+
+// =============================================================================
+// Top N Analysis
+// =============================================================================
+
+// Top check by exception count (returns the check_name with most exceptions)
+Top Check by Count = 
+VAR CheckCounts = 
+    ADDCOLUMNS(
+        SUMMARIZE(
+            fact_exceptions,
+            fact_exceptions[check_name]
+        ),
+        "@Count", COUNTROWS(fact_exceptions)
+    )
+VAR TopCheck = 
+    TOPN(1, CheckCounts, [@Count], DESC)
+RETURN
+    MAXX(TopCheck, fact_exceptions[check_name])
+
+// =============================================================================
+// Backtest Metrics (from fact_backtest)
+// =============================================================================
+
+// Overall recall across all fault types
+Overall Recall = 
+DIVIDE(
+    SUM(fact_backtest[detected]),
+    SUM(fact_backtest[injected]),
+    0
+)
+
+// False positive rate: exceptions on clean position-days / total clean position-days
+// Note: This requires a separate calculation using fact_marks and ground truth
+// For now, we use a simplified version
+False Positive Rate = 
+VAR CleanDays = 
+    CALCULATE(
+        COUNTROWS(fact_marks),
+        NOT(fact_marks[position_id] IN SELECTCOLUMNS(fact_backtest, "position_id", fact_backtest[fault_type]))
+    )
+VAR FalsePositives = 
+    CALCULATE(
+        COUNTROWS(fact_exceptions),
+        NOT(fact_exceptions[position_id] IN SELECTCOLUMNS(fact_backtest, "position_id", fact_backtest[fault_type]))
+    )
+RETURN
+    DIVIDE(FalsePositives, CleanDays, 0)
+
+// =============================================================================
+// Simulated vs Real
+// =============================================================================
+
+// Count of simulated exceptions (from workflow simulation)
+Simulated Exceptions = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    fact_exceptions[is_simulated] = TRUE
+)
+
+// Count of real (non-simulated) exceptions
+Real Exceptions = 
+CALCULATE(
+    COUNTROWS(fact_exceptions),
+    fact_exceptions[is_simulated] = FALSE
+)
