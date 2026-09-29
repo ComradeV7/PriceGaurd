@@ -456,15 +456,11 @@ def run_all(
     offline: bool = typer.Option(
         False, "--offline", help="Use sample data instead of fetching"
     ),
-    seed: int = typer.Option(
-        42, "--seed", help="Random seed for reproducibility"
-    ),
+    seed: int = typer.Option(42, "--seed", help="Random seed for reproducibility"),
     start_date: str = typer.Option(
         None, "--start-date", help="Start date (YYYY-MM-DD)"
     ),
-    end_date: str = typer.Option(
-        None, "--end-date", help="End date (YYYY-MM-DD)"
-    ),
+    end_date: str = typer.Option(None, "--end-date", help="End date (YYYY-MM-DD)"),
     skip_llm: bool = typer.Option(
         True, "--skip-llm", help="Skip LLM commentary (use templates only)"
     ),
@@ -505,8 +501,8 @@ def run_all(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler(log_file, encoding="utf-8"),
-            logging.StreamHandler()
-        ]
+            logging.StreamHandler(),
+        ],
     )
 
     start_time = time.time()
@@ -544,7 +540,8 @@ def run_all(
             end_dt = date.fromisoformat(end_date) if end_date else date.today()
             lookback = config.settings.lookback_business_days * 2
             start_dt = (
-                date.fromisoformat(start_date) if start_date
+                date.fromisoformat(start_date)
+                if start_date
                 else end_dt - timedelta(days=lookback)
             )
 
@@ -558,8 +555,12 @@ def run_all(
                         all_data.append(df)
                     elif instrument.ref_source == "stooq" and instrument.stooq_symbol:
                         df = fetch_stooq_prices(
-                            instrument.ticker, instrument.stooq_symbol,
-                            start_dt, end_dt, cache, False
+                            instrument.ticker,
+                            instrument.stooq_symbol,
+                            start_dt,
+                            end_dt,
+                            cache,
+                            False,
                         )
                         all_data.append(df)
                 except Exception as e:
@@ -595,7 +596,8 @@ def run_all(
         )
 
         data_dir = (
-            Path(config.settings.paths.data_sample) if offline
+            Path(config.settings.paths.data_sample)
+            if offline
             else Path(config.settings.paths.data_raw)
         )
         raw = load_all_cached(data_dir)
@@ -624,12 +626,16 @@ def run_all(
                     yield_series=fred_rows,
                     tenor_map=tenor_map,
                 )
-                bond_frames.append(pd.DataFrame({
-                    "symbol": instrument.ticker,
-                    "price_date": series["price_date"],
-                    "price": series["price"],
-                    "source": "fred_model",
-                }))
+                bond_frames.append(
+                    pd.DataFrame(
+                        {
+                            "symbol": instrument.ticker,
+                            "price_date": series["price_date"],
+                            "price": series["price"],
+                            "source": "fred_model",
+                        }
+                    )
+                )
             except Exception as e:
                 logger.warning(f"Failed to price {instrument.ticker}: {e}")
 
@@ -655,12 +661,12 @@ def run_all(
             repo.insert_dataframe("positions", positions)
             repo.insert_dataframe("l3_models", l3_models)
 
-            ref_db = reference_prices.rename(
-                columns={"symbol": "instrument_id"}
-            )[["instrument_id", "price_date", "price", "source"]].copy()
-            ref_db["price_date"] = pd.to_datetime(
-                ref_db["price_date"]
-            ).dt.date.astype(str)
+            ref_db = reference_prices.rename(columns={"symbol": "instrument_id"})[
+                ["instrument_id", "price_date", "price", "source"]
+            ].copy()
+            ref_db["price_date"] = pd.to_datetime(ref_db["price_date"]).dt.date.astype(
+                str
+            )
             repo.insert_dataframe("reference_prices", ref_db)
 
             marks_db = faulty_marks.copy()
@@ -671,9 +677,9 @@ def run_all(
 
             gt_db = ground_truth.copy()
             if not gt_db.empty:
-                gt_db["mark_date"] = pd.to_datetime(
-                    gt_db["mark_date"]
-                ).dt.date.astype(str)
+                gt_db["mark_date"] = pd.to_datetime(gt_db["mark_date"]).dt.date.astype(
+                    str
+                )
             repo.insert_dataframe("ground_truth", gt_db)
 
         results["generate"] = (
@@ -699,18 +705,25 @@ def run_all(
 
         with Repository(db_path) as repo:
             exceptions = run_validation(
-                repo, config, config_dir,
-                start_date=parsed_start, end_date=parsed_end
+                repo, config, config_dir, start_date=parsed_start, end_date=parsed_end
             )
 
             # Generate commentary drafts
             provider = TemplateProvider()
             for row in exceptions.to_dict(orient="records"):
                 facts = {
-                    key: row.get(key) for key in (
-                        "exception_id", "position_id", "mark_date",
-                        "check_name", "severity", "mark", "reference_price",
-                        "deviation_bps", "mv_impact_usd", "suspected_cause"
+                    key: row.get(key)
+                    for key in (
+                        "exception_id",
+                        "position_id",
+                        "mark_date",
+                        "check_name",
+                        "severity",
+                        "mark",
+                        "reference_price",
+                        "deviation_bps",
+                        "mv_impact_usd",
+                        "suspected_cause",
                     )
                 }
                 draft_and_store(repo, row["exception_id"], facts, provider)
@@ -739,8 +752,7 @@ def run_all(
         typer.echo(f"  Completed in {step_time:.2f}s")
     else:
         typer.echo(
-            "\n[4/6] Skipping workflow simulation "
-            "(use --simulate-workflow to enable)"
+            "\n[4/6] Skipping workflow simulation (use --simulate-workflow to enable)"
         )
         results["simulate"] = "Skipped"
 
@@ -752,8 +764,7 @@ def run_all(
             metrics = metrics_from_repository(repo)
         csv_path, report_path = write_report(metrics, output_dir)
         results["backtest"] = (
-            f"OK (recall={metrics['recall']:.2%}, "
-            f"precision={metrics['precision']:.2%})"
+            f"OK (recall={metrics['recall']:.2%}, precision={metrics['precision']:.2%})"
         )
         typer.echo(
             f"  Backtest complete: recall={metrics['recall']:.2%}, "

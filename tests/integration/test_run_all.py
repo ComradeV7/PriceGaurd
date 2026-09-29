@@ -89,8 +89,12 @@ def test_run_all_with_simulate_workflow():
     # Run the command with simulation
     result = subprocess.run(
         [
-            sys.executable, "-m", "priceguard.cli", "run-all",
-            "--offline", "--simulate-workflow"
+            sys.executable,
+            "-m",
+            "priceguard.cli",
+            "run-all",
+            "--offline",
+            "--simulate-workflow",
         ],
         cwd=project_root,
         capture_output=True,
@@ -123,6 +127,6 @@ def test_run_all_idempotent():
             text=True,
             timeout=60,
         )
-        assert result.returncode == 0, f"Run {i+1} failed: {result.stderr}"
+        assert result.returncode == 0, f"Run {i + 1} failed: {result.stderr}"
 
     # Both runs should succeed
