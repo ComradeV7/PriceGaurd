@@ -1,0 +1,72 @@
+{
+  "description": "PriceGuard stable Power BI and Excel export schemas",
+  "excel_review": {
+    "exception_id": "string",
+    "mark_date": "date",
+    "book": "string",
+    "instrument": "string",
+    "asset_class": "string",
+    "fv_level": "int",
+    "check_name": "string",
+    "severity": "string",
+    "mark": "float|null",
+    "reference_price": "float|null",
+    "deviation_bps": "float|null",
+    "mv_impact_usd": "float|null",
+    "suspected_cause": "string|null",
+    "draft_commentary": "string|null",
+    "status": "string"
+  },
+  "powerbi": {
+    "dim_date": {
+      "date": "date",
+      "year": "int",
+      "month": "int",
+      "week": "int",
+      "is_business_day": "bool"
+    },
+    "dim_instrument": {
+      "instrument_id": "string",
+      "ticker": "string",
+      "name": "string",
+      "asset_class": "string",
+      "fv_level": "int",
+      "currency": "string"
+    },
+    "dim_book": {"book": "string"},
+    "dim_severity": {"severity": "string", "sort_order": "int"},
+    "dim_status": {
+      "status": "string",
+      "sort_order": "int",
+      "is_open": "bool"
+    },
+    "fact_marks": {
+      "date": "date",
+      "position_id": "string",
+      "mark": "float|null",
+      "reference_price": "float|null",
+      "deviation_bps": "float|null",
+      "mv_usd": "float|null"
+    },
+    "fact_exceptions": {
+      "exception_id": "string",
+      "date": "date",
+      "position_id": "string",
+      "check_name": "string",
+      "severity": "string",
+      "status": "string",
+      "deviation_bps": "float|null",
+      "mv_impact_usd": "float|null",
+      "opened_date": "date",
+      "resolved_date": "date|null",
+      "age_days": "int",
+      "is_simulated": "bool"
+    },
+    "fact_backtest": {
+      "fault_type": "string",
+      "injected": "int",
+      "detected": "int",
+      "recall": "float"
+    }
+  }
+}
