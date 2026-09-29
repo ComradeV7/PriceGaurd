@@ -1,0 +1,28 @@
+# Fault injection parameters
+injection_rate: 0.04
+subtle_fraction: 0.10
+
+fault_type_weights:
+  STALE: 0.25
+  FAT_FINGER: 0.25
+  MISSING: 0.20
+  DRIFT: 0.20
+  CURRENCY_MISMATCH: 0.10
+
+fault_parameters:
+  STALE:
+    min_consecutive_days: 2
+    max_consecutive_days: 5
+  FAT_FINGER:
+    multipliers: [10, 0.1, 0.01]
+    transposition_probability: 0.3
+  MISSING:
+    probability: 1.0
+  DRIFT:
+    min_days: 10
+    max_days: 20
+    bps_per_day_min: 5
+    bps_per_day_max: 15
+    target_levels: [2, 3]
+  CURRENCY_MISMATCH:
+    target_currencies: [INR, USD]

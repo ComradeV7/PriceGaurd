@@ -1,0 +1,32 @@
+# Runtime settings for PriceGuard
+seed: 42
+base_currency: USD
+lookback_business_days: 90
+paths:
+  data_raw: data/raw
+  data_sample: data/sample
+  exports: exports
+  db: data/priceguard.db
+
+# Synthetic portfolio generation
+portfolio:
+  books: [Trading-A, Treasury, Banking-B]
+  quantity_ranges:
+    equity: {min: 10000, max: 500000}
+    bond_etf: {min: 50000, max: 1000000}
+    fx: {min: 1000000, max: 50000000}
+    bond_l2: {min: 10000, max: 200000}
+    l3: {min: 1, max: 100}
+
+# Internal mark noise (sigma of Normal(0, sigma) multiplicative deviation)
+mark_noise:
+  equity: 0.0005        # 5 bps
+  bond_etf: 0.0005      # 5 bps
+  fx: 0.0002            # 2 bps
+  bond_l2: 0.0008       # 8 bps
+  l3_daily_walk: 0.001  # daily random-walk step for Level 3
+
+# Yield curve tenors for Level 2 bond pricing (years -> FRED series)
+yield_curve:
+  tenors_years: [2, 5, 10, 30]
+  fred_series: [DGS2, DGS5, DGS10, DGS30]

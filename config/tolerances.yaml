@@ -1,0 +1,44 @@
+# Illustrative control thresholds per asset class and fair value level
+# All thresholds are in basis points (bps) unless otherwise noted
+# warn < breach < critical (critical = breach * critical_multiple)
+
+equity_l1:
+  warn_bps: 50
+  breach_bps: 100
+
+bond_etf_l1:
+  warn_bps: 75
+  breach_bps: 150
+
+fx_l1:
+  warn_bps: 25
+  breach_bps: 50
+
+bond_l2:
+  warn_bps: 30
+  breach_bps: 75
+
+l3:
+  band_pct: 5.0
+  daily_move_pct: 2.0
+
+severity:
+  critical_multiple: 5
+
+stale:
+  min_days: 2
+  ref_move_bps: 20
+
+drift:
+  consecutive_days: 3
+
+return_outlier:
+  mad_multiple: 5.0          # |gap - median| > mad_multiple * MAD flags an outlier
+  window_days: 10          # rolling window for median/MAD of the return gap
+  min_mad_bps: 10.0        # floor on MAD to avoid flagging on ultra-quiet panels
+
+cross_source:
+  max_diff_bps: 50         # two public sources disagreeing by more than this
+
+materiality:
+  mv_threshold_usd: 10000
